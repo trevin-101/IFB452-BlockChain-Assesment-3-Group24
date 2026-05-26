@@ -65,3 +65,25 @@ Recorded -> AllocatedToWholesaler -> InTransitToRetailer -> Delivered
 | BPMN modelling | SAP Signavio |
 
 ---
+## Repository Structure
+---
+## Prerequiresites
+
+Before running the project you need:
+
+1. MetaMask: browser extension — [install here](https://metamask.io)
+2. Sepolia testnet ETH: get free test ETH from a faucet:
+   - [Google Sepolia Faucet](https://cloud.google.com/application/web3/faucet/ethereum/sepolia)
+   - [Alchemy Sepolia Faucet](https://sepoliafaucet.com)
+3. A local HTTP server: to run the frontend (one of):
+   - VS Code + Live Server extension
+   - Python 3 (`python -m http.server`)
+   - Node.js + http-server (`npx http-server`)
+4. At least 5 MetaMask accounts representing different stakeholders:
+   - Admin (deployer)
+   - Importer
+   - Wholesaler
+   - Retailer
+   - Regulator
+
+---
