@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FuelGuard - Fuel Supply Chain</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; padding: 20px; color: #1a1a1a; }
+        h1 { color: #1B3A57; border-bottom: 3px solid #EF6C00; padding-bottom: 10px; }
+        h2 { color: #1B3A57; margin-top: 28px; font-size: 18px; }
+        h3 { color: #EF6C00; margin-top: 10px; font-size: 16px; }
+        label { display: inline-block; min-width: 170px; margin: 4px 0; }
+        input, select { padding: 6px; margin: 4px; width: 360px; border: 1px solid #ccc; border-radius: 3px; }
+        select { width: 376px; }
+        button { background: #EF6C00; color: white; padding: 8px 16px; border: none; cursor: pointer; margin: 6px 4px; border-radius: 4px; font-size: 14px; }
+        button:hover { background: #C25700; }
+        hr { margin: 20px 0; border: none; border-top: 1px solid #ddd; }
+        #status { background: #F5F7FA; padding: 10px 14px; border-left: 4px solid #EF6C00; margin: 10px 0; font-size: 14px; }
+        .result-box { background: #F5F7FA; padding: 12px 16px; margin-top: 8px; border-radius: 4px; border-left: 3px solid #1B3A57; }
+        .role-tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; color: white; background: #999; }
+        .role-tag.admin { background: #424242; }
+        .role-tag.importer { background: #1976D2; }
+        .role-tag.regulator { background: #C62828; }
+        .role-tag.wholesaler { background: #0F9D58; }
+        .role-tag.retailer { background: #6A1B9A; }
+        .section { border: 1px solid #e0e0e0; padding: 14px 18px; margin: 14px 0; border-radius: 6px; }
+        .section.admin { border-left: 5px solid #424242; }
+        .section.importer { border-left: 5px solid #1976D2; }
+        .section.wholesaler { border-left: 5px solid #0F9D58; }
+        .section.retailer { border-left: 5px solid #6A1B9A; }
+        .section.read { border-left: 5px solid #00838F; }
+    </style>
+</head>
+<body>
+    <h1>FuelGuard - Fuel Supply Chain</h1>
+
+    <div id="status">
+        <strong>Account:</strong> <span id="currentAccount">Not connected</span><br>
+        <strong>Detected role:</strong> <span id="currentRole">—</span>
+    </div>
+
+    <!-- ADMIN: Grant Role -->
+    <div class="section admin">
+        <h2>0. Grant Role <span class="role-tag admin">Admin only</span></h2>
+
+        <label for="grantUserAddress">User Address:</label>
+        <input type="text" id="grantUserAddress" placeholder="0x...">
+        <br>
+        <label for="grantRoleType">Role:</label>
+        <select id="grantRoleType">
+            <option value="IMPORTER_ROLE">Importer</option>
+            <option value="REGULATOR_ROLE">Regulator (ACCC)</option>
+            <option value="WHOLESALER_ROLE">Wholesaler</option>
+            <option value="RETAILER_ROLE">Retailer</option>
+        </select>
+        <br>
+        <button onclick="grantRole()">Grant Role</button>
+    </div>
+
+    <!-- ADMIN: Link Allocation to Record -->
+    <div class="section admin">
+        <h2>0b. Link Allocation Contract <span class="role-tag admin">Admin only</span></h2>
+        <p style="margin: 6px 0; font-size: 13px; color: #666;">
+            <em>Run this once after deployment so Record knows the Allocation contract address.</em>
+        </p>
+        <label for="setAllocAddress">Allocation Contract Address:</label>
+        <input type="text" id="setAllocAddress" placeholder="0x...">
+        <br>
+        <button onclick="setAllocationContract()">Set Allocation Contract</button>
+    </div>
+
+    <hr>
+
+    <!-- IMPORTER: Record Fuel Batch -->
+    <div class="section importer">
+        <h2>1. Record Fuel Batch <span class="role-tag importer">Importer</span></h2>
+
+        <label for="fuelType">Fuel Type:</label>
+        <input type="text" id="fuelType" placeholder="e.g. Petrol 91 / Diesel">
+        <br>
+        <label for="volume">Volume (litres):</label>
+        <input type="number" id="volume" placeholder="Enter volume in litres">
+        <br>
+        <label for="portLocation">Port Location:</label>
+        <input type="text" id="portLocation" placeholder="e.g. Port of Brisbane">
+        <br>
+        <button onclick="recordFuelBatch()">Record Fuel Batch</button>
+    </div>
+
+    <hr>
+
+    <!-- IMPORTER: Allocate to Wholesaler -->
+    <div class="section importer">
+        <h2>2. Allocate to Wholesaler <span class="role-tag importer">Importer</span></h2>
+
+        <label for="allocateBatchId">Batch ID:</label>
+        <input type="number" id="allocateBatchId" placeholder="Enter Batch ID">
+        <br>
+        <label for="allocateVolume">Volume (litres):</label>
+        <input type="number" id="allocateVolume" placeholder="Volume to allocate">
+        <br>
+        <label for="wholesalerAddress">Wholesaler Address:</label>
+        <input type="text" id="wholesalerAddress" placeholder="0x...">
+        <br>
+        <button onclick="allocateToWholesaler()">Allocate to Wholesaler</button>
+    </div>
+
+    <hr>
+
+    <!-- WHOLESALER: Distribute to Retailer -->
+    <div class="section wholesaler">
+        <h2>3. Distribute to Retailer <span class="role-tag wholesaler">Wholesaler</span></h2>
+
+        <label for="distributeBatchId">Batch ID:</label>
+        <input type="number" id="distributeBatchId" placeholder="Enter Batch ID">
+        <br>
+        <label for="distributeVolume">Volume (litres):</label>
+        <input type="number" id="distributeVolume" placeholder="Volume to distribute">
+        <br>
+        <label for="retailerAddress">Retailer Address:</label>
+        <input type="text" id="retailerAddress" placeholder="0x...">
+        <br>
+        <button onclick="distributeToRetailer()">Distribute to Retailer</button>
+    </div>
+
+    <hr>
+
+    <!-- RETAILER: Confirm Delivery -->
+    <div class="section retailer">
+        <h2>4. Confirm Delivery <span class="role-tag retailer">Retailer</span></h2>
+
+        <label for="confirmBatchId">Batch ID:</label>
+        <input type="number" id="confirmBatchId" placeholder="Enter Batch ID">
+        <br>
+        <button onclick="confirmDelivery()">Confirm Delivery</button>
+    </div>
+
+    <hr>
+
+    <!-- PUBLIC: View Batch Details / History -->
+    <div class="section read">
+        <h2>5. View Batch Details (Verification)</h2>
+
+        <label for="batchId">Batch ID:</label>
+        <input type="number" id="batchId" placeholder="Enter Batch ID">
+        <br>
+        <button onclick="getBatchDetails()">View Full Details</button>
+        <button onclick="getBatchHistory()">View History</button>
+
+        <div id="batchDetails"></div>
+        <div id="batchHistory"></div>
+    </div>
+
+    <hr>
+
+    <!-- PUBLIC: Check Holdings (anti-hoarding) -->
+    <div class="section read">
+        <h2>6. Check Stakeholder Holdings (anti-hoarding)</h2>
+
+        <label for="holdingsAddress">Stakeholder Address:</label>
+        <input type="text" id="holdingsAddress" placeholder="0x...">
+        <br>
+        <button onclick="getCurrentHoldings()">Check Active Batches</button>
+
+        <div id="holdings"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+
+    <script>
+
+        
+
+        const recordAddress       = '0xf2ad97a9f6c25049D6802a42d301BeDd99b442D8';
+        const allocationAddress   = '0x41b689CC41BcE8CBf299653c51Fe6DD164c835C7';
+        const verificationAddress = '0xc3520F4F0EdA2418058Ccc932170e963d00FD692';
+
+        const recordABI       = [
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "allocationContract",
+				"type": "address"
+			}
+		],
+		"name": "AllocationContractSet",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "fromBatchId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "newBatchId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "volumeLitres",
+				"type": "uint256"
+			}
+		],
+		"name": "BatchTransferred",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "parentBatchId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "actor",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "receiver",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "volumeLitres",
+				"type": "uint256"
+			},
+			{
+				"internalType": "enum FuelGuardRecord.BatchState",
+				"name": "newState",
+				"type": "uint8"
+			},
+			{
+				"internalType": "string",
+				"name": "action",
+				"type": "string"
+			}
+		],
+		"name": "createChildBatch",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "newBatchId",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "batchId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "retailer",
+				"type": "address"
+			}
+		],
+		"name": "DeliveryRecorded",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "batchId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "importer",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "fuelType",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "volumeLitres",
+				"type": "uint256"
+			}
+		],
+		"name": "FuelBatchRecorded",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "role",
+				"type": "bytes32"
+			}
+		],
+		"name": "grantRole",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "batchId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "retailer",
+				"type": "address"
+			}
+		],
+		"name": "markDelivered",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "fuelType",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "volumeLitres",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "portLocation",
+				"type": "string"
+			}
+		],
+		"name": "recordFuelBatch",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "batchId",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "role",
+				"type": "bytes32"
+			}
+		],
+		"name": "RoleGranted",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "contractAddress",
+				"type": "address"
+			}
+		],
+		"name": "setAllocationContract",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "admin",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "ADMIN_ROLE",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "allocationContract",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "batchId",
+				"type": "uint256"
+			}
+		],
+		"name": "getBatchDetails",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "batchId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "parentBatchId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "fuelType",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "volumeLitres",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "remainingVolumeLitres",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "dateRecorded",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "portLocation",
+						"type": "string"
+					},
+					{
+						"internalType": "address",
+						"name": "currentCustodian",
+						"type": "address"
+					},
+					{
+						"internalType": "enum FuelGuardRecord.BatchState",
+						"name": "state",
+						"type": "uint8"
+					}
+				],
+				"internalType": "struct FuelGuardRecord.FuelBatch",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "batchId",
+				"type": "uint256"
+			}
+		],
+		"name": "getBatchHistory",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "string",
+						"name": "action",
+						"type": "string"
+					},
+					{
+						"internalType": "address",
+						"name": "actor",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "from",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "volumeLitres",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct FuelGuardRecord.BatchHistory[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "stakeholder",
+				"type": "address"
+			}
+		],
+		"name": "getCurrentHoldings",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "IMPORTER_ROLE",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "REGULATOR_ROLE",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "RETAILER_ROLE",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"name": "roles",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "WHOLESALER_ROLE",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+        const allocationABI   =[
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "recordAddress",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "fromBatchId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "newBatchId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "wholesaler",
+				"type": "address"
+			}
+		],
+		"name": "AllocatedToWholesaler",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "batchId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "wholesaler",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "volumeLitres",
+				"type": "uint256"
+			}
+		],
+		"name": "allocateToWholesaler",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "newBatchId",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "batchId",
+				"type": "uint256"
+			}
+		],
+		"name": "confirmDelivery",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "batchId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "retailer",
+				"type": "address"
+			}
+		],
+		"name": "DeliveryConfirmed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "fromBatchId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "newBatchId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "retailer",
+				"type": "address"
+			}
+		],
+		"name": "DistributedToRetailer",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "batchId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "retailer",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "volumeLitres",
+				"type": "uint256"
+			}
+		],
+		"name": "distributeToRetailer",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "newBatchId",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "record",
+		"outputs": [
+			{
+				"internalType": "contract FuelGuardRecord",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+        const verificationABI = [
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "recordAddress",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "batchId",
+				"type": "uint256"
+			}
+		],
+		"name": "getBatchDetails",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "batchId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "parentBatchId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "fuelType",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "volumeLitres",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "remainingVolumeLitres",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "dateRecorded",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "portLocation",
+						"type": "string"
+					},
+					{
+						"internalType": "address",
+						"name": "currentCustodian",
+						"type": "address"
+					},
+					{
+						"internalType": "enum FuelGuardRecord.BatchState",
+						"name": "state",
+						"type": "uint8"
+					}
+				],
+				"internalType": "struct FuelGuardRecord.FuelBatch",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "batchId",
+				"type": "uint256"
+			}
+		],
+		"name": "getBatchHistory",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "string",
+						"name": "action",
+						"type": "string"
+					},
+					{
+						"internalType": "address",
+						"name": "actor",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "from",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "volumeLitres",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct FuelGuardRecord.BatchHistory[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "stakeholder",
+				"type": "address"
+			}
+		],
+		"name": "getCurrentHoldings",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "record",
+		"outputs": [
+			{
+				"internalType": "contract FuelGuardRecord",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+
+        // GLOBAL STATE
+        var web3;
+        var recordContract;
+        var allocationContract;
+        var verificationContract;
+
+        // Web3 initialisation pattern (matches FoodSupplyChain example)
+        if (typeof window.ethereum !== 'undefined') {
+            web3 = new Web3(window.ethereum);
+
+            window.ethereum.request({ method: 'eth_requestAccounts' })
+                .then(function (accounts) {
+                    web3.eth.defaultAccount = accounts[0];
+                    console.log("Default account set:", web3.eth.defaultAccount);
+                    document.getElementById('currentAccount').textContent = web3.eth.defaultAccount;
+
+                    initContracts();
+                    detectRole();
+                })
+                .catch(function (error) {
+                    console.error("MetaMask connection error:", error);
+                });
+
+            // Auto-update when the user switches MetaMask account
+            window.ethereum.on('accountsChanged', function (accounts) {
+                if (accounts.length === 0) {
+                    web3.eth.defaultAccount = null;
+                    document.getElementById('currentAccount').textContent = 'Not connected';
+                    document.getElementById('currentRole').textContent = '—';
+                    return;
+                }
+                web3.eth.defaultAccount = accounts[0];
+                console.log("Account switched to:", web3.eth.defaultAccount);
+                document.getElementById('currentAccount').textContent = web3.eth.defaultAccount;
+                detectRole();
+            });
+        } else {
+            console.log('Non-Ethereum browser detected. Please install MetaMask.');
+            alert('MetaMask not detected. Please install MetaMask to use this app.');
+        }
+
+        // Build the 3 contract instances. Skipped silently if address/ABI is empty.
+        function initContracts() {
+            if (recordAddress && recordABI.length > 0) {
+                recordContract = new web3.eth.Contract(recordABI, recordAddress);
+                console.log("Record contract loaded at:", recordAddress);
+            } else {
+                console.warn("recordAddress or recordABI not set.");
+            }
+            if (allocationAddress && allocationABI.length > 0) {
+                allocationContract = new web3.eth.Contract(allocationABI, allocationAddress);
+                console.log("Allocation contract loaded at:", allocationAddress);
+            } else {
+                console.warn("allocationAddress or allocationABI not set.");
+            }
+            if (verificationAddress && verificationABI.length > 0) {
+                verificationContract = new web3.eth.Contract(verificationABI, verificationAddress);
+                console.log("Verification contract loaded at:", verificationAddress);
+            } else {
+                console.warn("verificationAddress or verificationABI not set.");
+            }
+        }
+
+        // Detect what role the connected account has and display it
+        async function detectRole() {
+            if (!recordContract || !web3.eth.defaultAccount) return;
+            try {
+                const admin = await recordContract.methods.admin().call();
+                const me = web3.eth.defaultAccount;
+
+                const importerHash   = await recordContract.methods.IMPORTER_ROLE().call();
+                const regulatorHash  = await recordContract.methods.REGULATOR_ROLE().call();
+                const wholesalerHash = await recordContract.methods.WHOLESALER_ROLE().call();
+                const retailerHash   = await recordContract.methods.RETAILER_ROLE().call();
+
+                const isImporter   = await recordContract.methods.roles(me, importerHash).call();
+                const isRegulator  = await recordContract.methods.roles(me, regulatorHash).call();
+                const isWholesaler = await recordContract.methods.roles(me, wholesalerHash).call();
+                const isRetailer   = await recordContract.methods.roles(me, retailerHash).call();
+
+                const labels = [];
+                if (me.toLowerCase() === admin.toLowerCase()) labels.push('<span class="role-tag admin">Admin</span>');
+                if (isImporter)   labels.push('<span class="role-tag importer">Importer</span>');
+                if (isRegulator)  labels.push('<span class="role-tag regulator">Regulator</span>');
+                if (isWholesaler) labels.push('<span class="role-tag wholesaler">Wholesaler</span>');
+                if (isRetailer)   labels.push('<span class="role-tag retailer">Retailer</span>');
+                if (labels.length === 0) labels.push('No role (read-only)');
+
+                document.getElementById('currentRole').innerHTML = labels.join(' ');
+            } catch (err) {
+                console.error("Could not detect role:", err);
+                document.getElementById('currentRole').textContent = 'Error detecting role';
+            }
+        }
+
+        // Helper: pretty state names
+        function stateName(n) {
+            const names = ['Recorded', 'AllocatedToWholesaler', 'InTransitToRetailer', 'Delivered'];
+            return names[parseInt(n)] || 'Unknown';
+        }
+
+        // Helper: guard against missing contracts
+        function checkContract(c, name) {
+            if (!c) {
+                alert(name + " contract not loaded. Make sure you've pasted the address and ABI in the script.");
+                return false;
+            }
+            if (!web3.eth.defaultAccount) {
+                alert("MetaMask not connected.");
+                return false;
+            }
+            return true;
+        }
+
+        // Helper: friendly error reporting
+        function showError(err) {
+            console.error(err);
+            const msg = (err && err.message) ? err.message : String(err);
+            alert("Transaction failed: " + msg.substring(0, 250));
+        }
+
+
+     
+        // FUNCTION 0: grantRole (FuelGuardRecord)
+        async function grantRole() {
+            if (!checkContract(recordContract, "Record")) return;
+            try {
+                const user = document.getElementById('grantUserAddress').value;
+                const roleName = document.getElementById('grantRoleType').value;
+                const roleHash = await recordContract.methods[roleName]().call();
+
+                await recordContract.methods.grantRole(user, roleHash)
+                    .send({ from: web3.eth.defaultAccount })
+                    .on('transactionHash', function (hash) { console.log("Tx Hash:", hash); });
+
+                alert('Role ' + roleName + ' granted to ' + user);
+                detectRole();
+            } catch (e) { showError(e); }
+        }
+
+        // FUNCTION 0b: setAllocationContract (FuelGuardRecord)
+     
+        async function setAllocationContract() {
+            if (!checkContract(recordContract, "Record")) return;
+            try {
+                const allocAddr = document.getElementById('setAllocAddress').value;
+
+                await recordContract.methods.setAllocationContract(allocAddr)
+                    .send({ from: web3.eth.defaultAccount })
+                    .on('transactionHash', function (hash) { console.log("Tx Hash:", hash); });
+
+                alert('Allocation contract linked: ' + allocAddr);
+            } catch (e) { showError(e); }
+        }
+
+
+        // FUNCTION 1: recordFuelBatch (FuelGuardRecord)
+        async function recordFuelBatch() {
+            if (!checkContract(recordContract, "Record")) return;
+            try {
+                const fuelType = document.getElementById('fuelType').value;
+                const volume = document.getElementById('volume').value;
+                const portLocation = document.getElementById('portLocation').value;
+
+                await recordContract.methods.recordFuelBatch(fuelType, volume, portLocation)
+                    .send({ from: web3.eth.defaultAccount })
+                    .on('transactionHash', function (hash) { console.log("Tx Hash:", hash); })
+                    .on('confirmation', function (cn, receipt) { console.log("Confirmed:", cn); });
+
+                alert('Fuel batch recorded successfully!');
+            } catch (e) { showError(e); }
+        }
+
+        // FUNCTION 2: allocateToWholesaler (FuelGuardAllocation)
+        async function allocateToWholesaler() {
+            if (!checkContract(allocationContract, "Allocation")) return;
+            try {
+                const batchId = document.getElementById('allocateBatchId').value;
+                const volume = document.getElementById('allocateVolume').value;
+                const wholesaler = document.getElementById('wholesalerAddress').value;
+
+                await allocationContract.methods.allocateToWholesaler(batchId, wholesaler, volume)
+                    .send({ from: web3.eth.defaultAccount })
+                    .on('transactionHash', function (hash) { console.log("Tx Hash:", hash); });
+
+                alert('Allocated ' + volume + 'L from batch ' + batchId + ' to wholesaler');
+            } catch (e) { showError(e); }
+        }
+
+        // FUNCTION 3: distributeToRetailer (FuelGuardAllocation)
+
+        async function distributeToRetailer() {
+            if (!checkContract(allocationContract, "Allocation")) return;
+            try {
+                const batchId = document.getElementById('distributeBatchId').value;
+                const volume = document.getElementById('distributeVolume').value;
+                const retailer = document.getElementById('retailerAddress').value;
+
+                await allocationContract.methods.distributeToRetailer(batchId, retailer, volume)
+                    .send({ from: web3.eth.defaultAccount })
+                    .on('transactionHash', function (hash) { console.log("Tx Hash:", hash); });
+
+                alert('Distributed ' + volume + 'L from batch ' + batchId + ' to retailer');
+            } catch (e) { showError(e); }
+        }
+
+        // FUNCTION 4: confirmDelivery (FuelGuardAllocation)
+
+        async function confirmDelivery() {
+            if (!checkContract(allocationContract, "Allocation")) return;
+            try {
+                const batchId = document.getElementById('confirmBatchId').value;
+
+                await allocationContract.methods.confirmDelivery(batchId)
+                    .send({ from: web3.eth.defaultAccount })
+                    .on('transactionHash', function (hash) { console.log("Tx Hash:", hash); });
+
+                alert('Delivery confirmed for batch ' + batchId);
+            } catch (e) { showError(e); }
+        }
+
+        // FUNCTION 5a: getBatchDetails (FuelGuardVerification)
+        async function getBatchDetails() {
+            if (!checkContract(verificationContract, "Verification")) return;
+            try {
+                const batchId = document.getElementById('batchId').value;
+                const batch = await verificationContract.methods.getBatchDetails(batchId).call();
+
+                const stateStr = stateName(batch.state);
+
+                document.getElementById('batchDetails').innerHTML = `
+                    <div class="result-box">
+                        <h3>Batch Details</h3>
+                        <p><strong>Batch ID:</strong> ${batch.batchId}</p>
+                        <p><strong>Parent Batch:</strong> ${batch.parentBatchId == 0 ? '(none - original import)' : batch.parentBatchId}</p>
+                        <p><strong>Fuel Type:</strong> ${batch.fuelType}</p>
+                        <p><strong>Total Volume:</strong> ${batch.volumeLitres} L</p>
+                        <p><strong>Remaining Volume:</strong> ${batch.remainingVolumeLitres} L</p>
+                        <p><strong>Port:</strong> ${batch.portLocation}</p>
+                        <p><strong>Date Recorded:</strong> ${new Date(batch.dateRecorded * 1000)}</p>
+                        <p><strong>Current Custodian:</strong> ${batch.currentCustodian}</p>
+                        <p><strong>State:</strong> ${stateStr}</p>
+                    </div>
+                `;
+            } catch (e) { showError(e); }
+        }
+
+        // FUNCTION 5b: getBatchHistory (FuelGuardVerification)
+        async function getBatchHistory() {
+            if (!checkContract(verificationContract, "Verification")) return;
+            try {
+                const batchId = document.getElementById('batchId').value;
+                const history = await verificationContract.methods.getBatchHistory(batchId).call();
+                const div = document.getElementById('batchHistory');
+
+                let html = `<div class="result-box"><h3>Provenance History for Batch ${batchId}</h3>`;
+
+                if (history.length === 0) {
+                    html += '<p>No history available for this batch.</p>';
+                } else {
+                    html += '<ol>';
+                    for (let i = 0; i < history.length; i++) {
+                        const e = history[i];
+                        const from = (e.from === '0x0000000000000000000000000000000000000000') ? '(origin)' : e.from;
+                        html += `
+                            <li style="margin-bottom: 10px;">
+                                <strong>${e.action}</strong><br>
+                                <strong>Actor:</strong> ${e.actor}<br>
+                                <strong>From:</strong> ${from}<br>
+                                <strong>To:</strong> ${e.to}<br>
+                                <strong>Volume:</strong> ${e.volumeLitres} L<br>
+                                <strong>Time:</strong> ${new Date(e.timestamp * 1000)}
+                            </li>
+                        `;
+                    }
+                    html += '</ol>';
+                    html += `<p><strong>Total events:</strong> ${history.length}</p>`;
+                }
+
+                html += '</div>';
+                div.innerHTML = html;
+            } catch (e) { showError(e); }
+        }
+
+        // FUNCTION 6: getCurrentHoldings (FuelGuardVerification)
+        async function getCurrentHoldings() {
+            if (!checkContract(verificationContract, "Verification")) return;
+            try {
+                const address = document.getElementById('holdingsAddress').value;
+                const batchIds = await verificationContract.methods.getCurrentHoldings(address).call();
+                const div = document.getElementById('holdings');
+
+                if (batchIds.length === 0) {
+                    div.innerHTML = `
+                        <div class="result-box">
+                            <h3>Holdings for ${address}</h3>
+                            <p>No active batches held.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Walk through each batch to display volume + type
+                let html = `<div class="result-box"><h3>Holdings for ${address}</h3>`;
+                html += `<p><strong>Active batches:</strong> ${batchIds.length}</p>`;
+                html += '<ul>';
+
+                let totalVolume = 0;
+                for (let i = 0; i < batchIds.length; i++) {
+                    try {
+                        const b = await verificationContract.methods.getBatchDetails(batchIds[i]).call();
+                        totalVolume += parseInt(b.remainingVolumeLitres);
+                        html += `<li>Batch #${batchIds[i]} — ${b.remainingVolumeLitres} L of ${b.fuelType} (state: ${stateName(b.state)})</li>`;
+                    } catch (err) {
+                        html += `<li>Batch #${batchIds[i]} — (could not load details)</li>`;
+                    }
+                }
+                html += '</ul>';
+                html += `<p><strong>Total remaining volume:</strong> ${totalVolume} L</p>`;
+                html += `<p style="font-size:12px; color:#666;"><em>Sum across all batches where this address is the current custodian and remaining volume > 0.</em></p>`;
+                html += '</div>';
+
+                div.innerHTML = html;
+            } catch (e) { showError(e); }
+        }
+    </script>
+</body>
+</html>
