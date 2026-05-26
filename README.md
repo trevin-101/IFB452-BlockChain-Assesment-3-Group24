@@ -117,3 +117,56 @@ This project has two part to set up: the smart contract (one-time deployment) an
 5. Set **ENVIRONMENT** to `Browser Extension` select `Sepolia Testnet-Metamask`
 6. Confirm MetaMask is on the **Sepolia** network and using your **Admin** account.
 7. Deploy the three contracts **in this order**:
+   
+   ```
+   1. FuelGuardRecord       (no constructor args)
+   2. FuelGuardAllocation   (constructor arg: Record address)
+   3. FuelGuardVerification (constructor arg: Record address)
+   ```
+8. After deployment, copy each contract's address from the Deployed Contracts panel.
+
+### Part 2 — Link the contracts
+
+After deploying, the Record contract needs to know the Allocation contract's address before it will accept any allocation calls.
+
+1. Make sure MetaMask is on the **Admin** account.
+2. In Remix, expand `FuelGuardRecord` in Deployed Contracts.
+3. Find the `setAllocationContract` function.
+4. Paste the **Allocation contract's address** as the argument.
+5. Click `transact` and confirm in MetaMask.
+
+> NOTE: **Without this step, allocateToWholesaler and distributeToRetailer will always fail.**
+
+### Part 3 — Grant roles
+
+Still as Admin, grant a role to each stakeholder account.
+
+For each role:
+1. Click the role's identifier button (`IMPORTER_ROLE`, `WHOLESALER_ROLE`, etc.) to copy its bytes32 value.
+2. Call `grantRole(account, role)`:
+   - `account`: the stakeholder's wallet address
+   - `role`: the bytes32 value
+3. Confirm in MetaMask.
+
+Repeat for all four stakeholder roles (Importer, Wholesaler, Retailer, Regulator).
+
+### Part 4 — Configure the frontend
+
+1. Open `Frontend/index.html` in a text editor.
+2. Find these placeholders near the top of the `<script>` section:
+
+   ```javascript
+   const recordAddress       = '';
+   const allocationAddress   = '';
+   const verificationAddress = '';
+
+   const recordABI       = [];
+   const allocationABI   = [];
+   const verificationABI = [];
+   ```
+
+3. Paste your three contract addresses.
+4. Copy each contract's ABI from Remix:
+   - Solidity Compiler tab → select the contract from dropdown → click the ABI copy icon
+   - Paste each ABI into the corresponding variable (replace the `[]`)
+5. Save the file.
