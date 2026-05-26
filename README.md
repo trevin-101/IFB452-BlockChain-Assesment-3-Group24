@@ -44,3 +44,24 @@ FuelGuardAllocation (cross-contract calls to FuelGuardRecord):
  - getBatchDetails
  - getBatchHistory
  - getCurrentHoldings
+
+### Lifecycle states
+
+
+Recorded -> AllocatedToWholesaler -> InTransitToRetailer -> Delivered
+
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Smart contracts | Solidity 0.8.20+ |
+| Development | Remix IDE |
+| Network | Ethereum Sepolia testnet |
+| Frontend | HTML + JavaScript + Web3.js 1.10.0 |
+| Wallet | MetaMask |
+| BPMN modelling | SAP Signavio |
+
+---
