@@ -66,6 +66,23 @@ Recorded -> AllocatedToWholesaler -> InTransitToRetailer -> Delivered
 
 ---
 ## Repository Structure
+
+Backend/
+
+    └── FuelGuard.sol
+    
+Frontend/
+
+    └── index.html
+
+docs/
+
+  └── Group 24.pdf
+  
+  └── BPMN-Collaboration Diagram.pdf
+
+README.md
+
 ---
 ## Prerequiresites
 
