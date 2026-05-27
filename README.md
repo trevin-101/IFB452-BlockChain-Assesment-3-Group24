@@ -84,6 +84,69 @@ docs/
 README.md
 
 ---
+## FuelGuard Backend Explaination
+
+FuelGuard is a simple blockchain backend for tracking fuel as it moves through a supply chain. The main idea is that each important action is recorded on chain so there is a clear and trustworthy record of where the fuel came from, who currently holds it, and how it moved between stakeholders.
+
+The backend uses three smart contracts:
+
+1. FuelGuardRecord
+2. FuelGuardAllocation
+3. FuelGuardVerification
+
+**FuelGuardRecord**:
+
+FuelGuardRecord is the main storage contract. It keeps the actual data for the system, including fuel batches, stakeholder roles, current custody, remaining volume, and batch history.
+
+When an importer receives fuel at a port, they call recordFuelBatch. This creates a new fuel batch with a unique batch ID. The batch stores the fuel type, volume in litres, port location, time recorded, current custodian, and state.
+
+The current custodian is important because the contract should know who currently controls the fuel. For example, when the importer first records the batch, the importer is the custodian. After some fuel is allocated to a wholesaler, the wholesaler becomes the custodian of the new child batch.
+
+FuelGuardRecord also stores the role system. The admin can grant roles such as importer, wholesaler, retailer, and regulator. These roles are used to make sure only the correct stakeholder can perform each action.
+
+
+**FuelGuardAllocation**:
+
+FuelGuardAllocation handles the movement of fuel between stakeholders.
+
+The allocation flow is:
+
+Importer -> Wholesaler -> Retailer
+
+An importer calls allocateToWholesaler when they want to send some fuel to a wholesaler. The contract checks that the caller is an importer and that the receiving address has the wholesaler role.
+
+A wholesaler calls distributeToRetailer when they want to send some fuel to a retailer. The contract checks that the caller is a wholesaler and that the receiving address has the retailer role.
+
+A retailer calls confirmDelivery when the fuel has been received. This changes the batch state to Delivered.
+
+When fuel is transferred, the system creates a new child batch instead of simply changing the owner of the original batch. This is useful because one large fuel batch can be split into smaller batches. For example, an importer may receive 100,000 litres of diesel, then allocate 40,000 litres to one wholesaler and keep the remaining 60,000 litres available. The child batch keeps a parentBatchId so the history can still be traced back to the original imported batch.
+
+
+**FuelGuardVerification**:
+
+FuelGuardVerification is the read only contract. It is used by public users, consumers, or regulators to check information without changing anything.
+
+It has three main functions:
+
+getBatchDetails shows the current data for a batch, such as fuel type, volume, remaining volume, port location, current custodian, and state.
+
+getBatchHistory shows the actions that happened to a batch, such as recorded, allocated, distributed, or delivered.
+
+getCurrentHoldings shows which active batch IDs are currently held by a stakeholder address.
+
+
+**Why setAllocationContract is Needed**
+
+FuelGuardRecord stores the data, but FuelGuardAllocation controls the transfer workflow. Because of this, FuelGuardAllocation needs permission to update data inside FuelGuardRecord.
+
+The setAllocationContract function links the Record contract to the deployed Allocation contract. Once this is set, only that Allocation contract can call sensitive update functions such as createChildBatch and markDelivered.
+
+This prevents users from directly creating transfers or marking deliveries without going through the correct allocation workflow.
+
+Overall, FuelGuard is meant to show how blockchain can improve transparency in fuel distribution. It does not solve real world fuel shortages by itself, but it creates a shared and auditable record that can help expose unfair allocation, hoarding, or missing delivery records.
+
+
+
 ## Prerequiresites
 
 Before running the project you need:
