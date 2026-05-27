@@ -242,3 +242,7 @@ The dApp is divided into sections, one per stakeholder role. Switch MetaMask acc
 
 This project is submitted as Assessment Task 3 - Final Asignmnet: Project Demo for IFB452 at QUT. Code is released under the MIT License for educational use.
 
+## Github Link
+
+<https://github.com/trevin-101/IFB452-BlockChain-Assesment-3-Group24.git>
+
